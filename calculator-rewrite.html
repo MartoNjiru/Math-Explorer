@@ -1,0 +1,1007 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10243b">
+  <title>Math Explorer</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172b43;
+      --muted: #60758d;
+      --line: #dbe5ee;
+      --panel: #fff;
+      --canvas: #f7faff;
+      --blue: #1769aa;
+      --violet: #7051ad;
+      --green: #23875b;
+      --orange: #bd641a;
+      --red: #b83b4b;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      padding: 24px;
+      color: var(--ink);
+      background: radial-gradient(circle at top left, #dbeaff, transparent 38%),
+        linear-gradient(135deg, #eef4fb, #e8e9fa);
+    }
+    button, input { font: inherit; }
+    button {
+      min-height: 42px;
+      padding: 9px 12px;
+      border: 0;
+      border-radius: 10px;
+      color: #fff;
+      background: var(--blue);
+      font-weight: 650;
+      cursor: pointer;
+      transition: filter .15s ease, transform .15s ease;
+    }
+    button:hover { filter: brightness(.92); }
+    button:active { transform: translateY(1px); }
+    button:focus-visible, input:focus-visible {
+      outline: 3px solid #f0b54a;
+      outline-offset: 2px;
+    }
+    .app {
+      display: grid;
+      grid-template-columns: minmax(270px, 340px) minmax(0, 1fr);
+      grid-template-rows: auto minmax(540px, 1fr);
+      width: min(1240px, 100%);
+      min-height: min(850px, calc(100vh - 48px));
+      margin: auto;
+      overflow: hidden;
+      border: 1px solid rgba(211, 222, 235, .9);
+      border-radius: 22px;
+      background: var(--panel);
+      box-shadow: 0 22px 70px rgba(34, 56, 91, .16);
+    }
+    .topbar {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 16px 22px;
+      color: #fff;
+      background: #10243b;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark {
+      display: grid;
+      width: 40px;
+      height: 40px;
+      place-items: center;
+      border-radius: 12px;
+      background: rgba(255,255,255,.13);
+      font-size: 22px;
+    }
+    .brand h1 { margin: 0; font-size: 1.08rem; }
+    .brand p { margin: 3px 0 0; color: #b9cbdd; font-size: .8rem; }
+    .mode {
+      min-width: 112px;
+      background: #304b68;
+    }
+    .mode[aria-pressed="true"] { background: var(--green); }
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(290px, 390px) minmax(0, 1fr);
+      grid-column: 1 / -1;
+      min-height: 0;
+    }
+    .left-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 18px;
+      border-right: 1px solid var(--line);
+      background: #fbfdff;
+    }
+    .display-card {
+      padding: 14px;
+      border-radius: 15px;
+      color: #fff;
+      background: #152c46;
+    }
+    .display-label { color: #b9cbdd; font-size: .76rem; letter-spacing: .08em; text-transform: uppercase; }
+    #display {
+      display: block;
+      width: 100%;
+      min-height: 52px;
+      margin-top: 7px;
+      overflow: auto hidden;
+      color: #fff;
+      font: 600 clamp(1.45rem, 4vw, 2.15rem)/1.25 "Cascadia Code", Consolas, monospace;
+      text-align: right;
+      white-space: nowrap;
+    }
+    #status { min-height: 1.2em; margin-top: 5px; color: #c9d7e4; font-size: .78rem; }
+    #status.error { color: #ffb8bd; }
+    .keypad { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+    .keypad button { padding: 8px 4px; }
+    .function { background: var(--violet); }
+    .operator { background: var(--orange); }
+    .special { color: #233449; background: #e6edf5; }
+    .clear { background: var(--red); }
+    .equals { background: var(--green); }
+    .wide { grid-column: span 2; }
+    .side-section {
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: #fff;
+    }
+    .section-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 0 0 10px;
+      font-size: .91rem;
+    }
+    .section-heading button { min-height: 30px; padding: 5px 9px; font-size: .76rem; }
+    .history-list {
+      display: grid;
+      gap: 4px;
+      max-height: 160px;
+      overflow: auto;
+    }
+    .history-entry {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      width: 100%;
+      min-height: 32px;
+      padding: 6px 8px;
+      overflow: hidden;
+      color: var(--ink);
+      background: #f4f7fb;
+      font-size: .78rem;
+      font-weight: 500;
+      text-align: left;
+    }
+    .history-entry span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .empty-note, .steps {
+      margin: 0;
+      color: var(--muted);
+      font-size: .79rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+    .memory-row { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
+    .memory-row button { min-height: 32px; padding: 5px 10px; font-size: .77rem; }
+    #memory-display { color: var(--muted); font: .8rem Consolas, monospace; }
+    .constant-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .constant-grid button { min-height: 35px; padding: 4px; color: var(--ink); background: #f0f5fb; font-size: .78rem; }
+    .right-panel {
+      display: grid;
+      grid-template-rows: minmax(300px, 1fr) auto;
+      min-width: 0;
+      background: var(--canvas);
+    }
+    .graph-wrap { position: relative; min-height: 300px; }
+    #graph {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 300px;
+      touch-action: none;
+    }
+    .graph-controls {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 6px;
+      max-width: calc(100% - 28px);
+    }
+    .graph-controls button { min-height: 34px; padding: 6px 9px; box-shadow: 0 2px 8px #18344b1c; font-size: .78rem; }
+    .graph-controls .selected { background: var(--green); }
+    .graph-hint {
+      position: absolute;
+      bottom: 10px;
+      left: 14px;
+      max-width: calc(100% - 28px);
+      color: var(--muted);
+      font-size: .76rem;
+    }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 14px; }
+    .detail-grid .side-section { min-height: 80px; }
+    .detail-grid h2 { margin: 0 0 7px; font-size: .84rem; }
+    .detail-grid .steps { max-height: 120px; overflow: auto; }
+    .footer-note { color: var(--muted); font-size: .73rem; }
+    @media (max-width: 860px) {
+      body { padding: 12px; }
+      .app { min-height: calc(100vh - 24px); grid-template-rows: auto auto; }
+      .workspace { grid-template-columns: 1fr; }
+      .left-panel { border-right: 0; border-bottom: 1px solid var(--line); }
+      .keypad { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+      .right-panel { min-height: 520px; }
+    }
+    @media (max-width: 520px) {
+      body { padding: 0; background: #fff; }
+      .app { width: 100%; min-height: 100vh; border: 0; border-radius: 0; }
+      .topbar { padding: 13px; }
+      .left-panel { padding: 12px; }
+      .keypad { gap: 6px; }
+      .keypad button { min-height: 40px; font-size: .9rem; }
+      .right-panel { min-height: 460px; grid-template-rows: 330px auto; }
+      .detail-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">∑</span>
+        <div><h1>Math Explorer</h1><p>Calculator, graphing and symbolic tools</p></div>
+      </div>
+      <button class="mode" id="mode-toggle" type="button" aria-pressed="false">Standard</button>
+    </header>
+
+    <div class="workspace">
+      <section class="left-panel" aria-label="Calculator">
+        <div class="display-card">
+          <span class="display-label">Expression</span>
+          <output id="display" aria-live="polite">0</output>
+          <div id="status" role="status" aria-live="polite">Ready</div>
+        </div>
+
+        <div class="keypad" aria-label="Calculator keypad">
+          <button class="special" type="button" data-action="graph">Graph</button>
+          <button class="clear" type="button" data-action="clear">AC</button>
+          <button class="clear" type="button" data-action="backspace">⌫</button>
+          <button class="operator" type="button" data-insert="(">(</button>
+          <button class="operator" type="button" data-insert=")">)</button>
+          <button class="function" type="button" data-insert="sin(">sin</button>
+          <button class="function" type="button" data-insert="cos(">cos</button>
+          <button class="function" type="button" data-insert="tan(">tan</button>
+          <button class="function" type="button" data-insert="sqrt(">√</button>
+          <button class="operator" type="button" data-insert="^">xʸ</button>
+          <button class="function" type="button" data-insert="log10(">log</button>
+          <button class="function" type="button" data-insert="ln(">ln</button>
+          <button class="function" type="button" data-insert="factorial(">x!</button>
+          <button class="operator" type="button" data-insert="%">%</button>
+          <button class="special" type="button" data-action="differentiate">d/dx</button>
+          <button type="button" data-insert="7">7</button>
+          <button type="button" data-insert="8">8</button>
+          <button type="button" data-insert="9">9</button>
+          <button class="operator" type="button" data-insert="/">÷</button>
+          <button class="special" type="button" data-action="solve">Solve</button>
+          <button type="button" data-insert="4">4</button>
+          <button type="button" data-insert="5">5</button>
+          <button type="button" data-insert="6">6</button>
+          <button class="operator" type="button" data-insert="*">×</button>
+          <button class="special" type="button" data-action="expand">Expand</button>
+          <button type="button" data-insert="1">1</button>
+          <button type="button" data-insert="2">2</button>
+          <button type="button" data-insert="3">3</button>
+          <button class="operator" type="button" data-insert="-">−</button>
+          <button class="special" type="button" data-action="simplify">Simplify</button>
+          <button class="wide" type="button" data-insert="0">0</button>
+          <button type="button" data-insert=".">.</button>
+          <button class="operator" type="button" data-insert="+">+</button>
+          <button class="equals" type="button" data-action="calculate">=</button>
+          <button class="function" type="button" data-insert="sinh(">sinh</button>
+          <button class="function" type="button" data-insert="cosh(">cosh</button>
+          <button class="function" type="button" data-insert="tanh(">tanh</button>
+          <button class="function" type="button" data-insert="exp(">exp</button>
+          <button class="function" type="button" data-insert="log_b(">logᵦ</button>
+          <button class="special" type="button" data-insert="C(">nCr</button>
+          <button class="special" type="button" data-insert="P(">nPr</button>
+          <button class="operator" type="button" data-insert=",">,</button>
+          <button class="special" type="button" data-insert="π">π</button>
+          <button class="special" type="button" data-insert="e">e</button>
+          <button class="special" type="button" data-insert="x">x</button>
+          <button class="function" type="button" data-insert="asin(">asin</button>
+          <button class="function" type="button" data-insert="acos(">acos</button>
+          <button class="function" type="button" data-insert="atan(">atan</button>
+          <button class="function" type="button" data-insert="asinh(">asinh</button>
+          <button class="function" type="button" data-insert="acosh(">acosh</button>
+          <button class="function" type="button" data-insert="atanh(">atanh</button>
+        </div>
+
+        <section class="side-section" aria-labelledby="memory-title">
+          <h2 class="section-heading" id="memory-title">Memory <span id="memory-display">0</span></h2>
+          <div class="memory-row">
+            <button class="special" type="button" data-action="memory-store">M+</button>
+            <button class="special" type="button" data-action="memory-recall">MR</button>
+            <button class="special" type="button" data-action="memory-clear">MC</button>
+          </div>
+        </section>
+        <section class="side-section" aria-labelledby="constants-title">
+          <h2 class="section-heading" id="constants-title">Physical constants</h2>
+          <div class="constant-grid" id="constants"></div>
+        </section>
+        <section class="side-section" aria-labelledby="history-title">
+          <h2 class="section-heading" id="history-title">History <button class="special" type="button" data-action="history-clear">Clear</button></h2>
+          <div class="history-list" id="history"></div>
+        </section>
+      </section>
+
+      <section class="right-panel" aria-label="Graph and working">
+        <div class="graph-wrap">
+          <canvas id="graph" aria-label="Function graph"></canvas>
+          <div class="graph-controls">
+            <button type="button" data-action="graph-reset">Reset</button>
+            <button type="button" data-action="zoom-in">+</button>
+            <button type="button" data-action="zoom-out">−</button>
+            <button type="button" data-action="trace" aria-pressed="false">Trace</button>
+            <button type="button" data-action="derivative" aria-pressed="false">f′</button>
+            <button type="button" data-action="integral" aria-pressed="false">∫</button>
+          </div>
+          <div class="graph-hint">Enter an expression in x, then select Graph. Drag to pan; use the wheel to zoom.</div>
+        </div>
+        <div class="detail-grid">
+          <section class="side-section">
+            <h2>Steps</h2>
+            <pre class="steps" id="steps">Enter an expression to see the working.</pre>
+          </section>
+          <section class="side-section">
+            <h2>Symbolic & numerical tools</h2>
+            <div class="memory-row">
+              <button class="function" type="button" data-action="integrate">∫₀¹</button>
+              <button class="function" type="button" data-action="numerical">Find root</button>
+            </div>
+            <p class="footer-note">Symbolic operations use Nerdamer when its CDN library is available. Standard arithmetic and graphing work without it.</p>
+          </section>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.4/nerdamer.core.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.4/Algebra.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.4/Calculus.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.4/Solve.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.4/Extra.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script>
+    (() => {
+      'use strict';
+
+      const $ = (id) => document.getElementById(id);
+      const display = $('display');
+      const status = $('status');
+      const canvas = $('graph');
+      const context = canvas.getContext('2d');
+      const state = {
+        expression: '0',
+        waiting: false,
+        symbolic: false,
+        memory: 0,
+        history: loadHistory(),
+        graphVisible: false,
+        graphExpression: '',
+        xMin: -10,
+        xMax: 10,
+        yMin: -10,
+        yMax: 10,
+        trace: false,
+        traceX: null,
+        derivative: false,
+        integral: false,
+        dragging: false,
+        dragPoint: null
+      };
+
+      const constants = {
+        'π': Math.PI,
+        e: Math.E,
+        c: 299792458,
+        G: 6.6743e-11,
+        h: 6.62607015e-34,
+        kB: 1.380649e-23,
+        NA: 6.02214076e23,
+        R: 8.314462618,
+        σ: 5.670374419e-8,
+        ε0: 8.8541878128e-12,
+        μ0: 1.2566370614e-6
+      };
+
+      function loadHistory() {
+        try {
+          const entries = JSON.parse(localStorage.getItem('mathExplorerHistory') || '[]');
+          return Array.isArray(entries) ? entries.slice(0, 50) : [];
+        } catch (error) {
+          console.warn('Could not read calculator history from local storage.', error);
+          return [];
+        }
+      }
+
+      function setStatus(message, isError = false) {
+        status.textContent = message;
+        status.classList.toggle('error', isError);
+      }
+
+      function updateDisplay() {
+        display.textContent = state.expression;
+      }
+
+      function append(value) {
+        if (state.waiting && !/^[+\-*/^%)]$/.test(value)) state.expression = '';
+        if (state.expression === '0' && (/^[0-9.]$/.test(value) || value === '(' || /^[A-Za-z_πσμε]/.test(value))) state.expression = '';
+        state.expression += value;
+        state.waiting = false;
+        updateDisplay();
+        setStatus('Ready');
+      }
+
+      function clear() {
+        state.expression = state.symbolic ? '' : '0';
+        state.waiting = false;
+        $('steps').textContent = '';
+        updateDisplay();
+        setStatus('Ready');
+      }
+
+      function backspace() {
+        state.expression = state.expression.length > 1 ? state.expression.slice(0, -1) : state.symbolic ? '' : '0';
+        state.waiting = false;
+        updateDisplay();
+      }
+
+      function tokenize(source) {
+        source = source.trim();
+        const tokens = [];
+        const pattern = /\s*(?:(\d+(?:\.\d*)?|\.\d+)(?:([eE][+-]?\d+))?|([A-Za-z_πσμε]+)|([()+\-*/^%,!]))/gy;
+        let index = 0;
+        while (index < source.length) {
+          pattern.lastIndex = index;
+          const match = pattern.exec(source);
+          if (!match) throw new Error(`Unexpected character at position ${index + 1}.`);
+          index = pattern.lastIndex;
+          if (match[1]) tokens.push({ type: 'number', value: Number(match[1] + (match[2] || '')) });
+          else if (match[3]) tokens.push({ type: 'name', value: match[3] });
+          else tokens.push({ type: match[4], value: match[4] });
+        }
+        const functions = new Set(['sin','cos','tan','asin','acos','atan','sinh','cosh','tanh','asinh','acosh','atanh','sqrt','ln','log','log10','exp','abs','factorial','C','P','log_b']);
+        const expanded = [];
+        for (let i = 0; i < tokens.length; i++) {
+          const current = tokens[i];
+          const previous = expanded[expanded.length - 1];
+          const previousEndsValue = previous && (previous.type === 'number' || previous.type === ')' || previous.type === '!' || (previous.type === 'name' && !functions.has(previous.value)));
+          const currentStartsValue = current.type === 'number' || current.type === '(' || current.type === 'name';
+          const isFunctionCall = previous && previous.type === 'name' && functions.has(previous.value) && current.type === '(';
+          if (previousEndsValue && currentStartsValue && !isFunctionCall) expanded.push({ type: '*', value: '*' });
+          expanded.push(current);
+        }
+        return expanded;
+      }
+
+      function evaluate(source, variables = {}) {
+        const tokens = tokenize(source);
+        let position = 0;
+        const peek = () => tokens[position];
+        const take = (type) => {
+          if (!peek() || (type && peek().type !== type)) throw new Error(`Expected ${type || 'a value'}.`);
+          return tokens[position++];
+        };
+
+        function expression() {
+          let value = term();
+          while (peek() && (peek().type === '+' || peek().type === '-')) {
+            const operator = take().type;
+            const right = term();
+            value = operator === '+' ? value + right : value - right;
+          }
+          return value;
+        }
+
+        function term() {
+          let value = unary();
+          while (peek() && ['*', '/', '%'].includes(peek().type)) {
+            const operator = take().type;
+            const right = unary();
+            if ((operator === '/' || operator === '%') && right === 0) throw new Error('Division by zero.');
+            value = operator === '*' ? value * right : operator === '/' ? value / right : value % right;
+          }
+          return value;
+        }
+
+        function unary() {
+          if (peek() && (peek().type === '+' || peek().type === '-')) {
+            const operator = take().type;
+            const value = unary();
+            return operator === '-' ? -value : value;
+          }
+          return power();
+        }
+
+        function power() {
+          let value = postfix();
+          if (peek() && peek().type === '^') {
+            take('^');
+            value = Math.pow(value, unary());
+          }
+          return value;
+        }
+
+        function postfix() {
+          let value = primary();
+          while (peek() && (peek().type === '!' || peek().type === '%')) {
+            const operator = take().type;
+            value = operator === '!' ? factorial(value) : value / 100;
+          }
+          return value;
+        }
+
+        function primary() {
+          const token = take();
+          if (token.type === 'number') return token.value;
+          if (token.type === '(') {
+            const value = expression();
+            take(')');
+            return value;
+          }
+          if (token.type !== 'name') throw new Error('Expected a number, constant, or function.');
+          if (peek() && peek().type === '(') {
+            take('(');
+            const args = [];
+            if (!peek() || peek().type !== ')') {
+              args.push(expression());
+              while (peek() && peek().type === ',') {
+                take(',');
+                args.push(expression());
+              }
+            }
+            take(')');
+            return callFunction(token.value, args);
+          }
+          if (Object.prototype.hasOwnProperty.call(variables, token.value)) return variables[token.value];
+          if (Object.prototype.hasOwnProperty.call(constants, token.value)) return constants[token.value];
+          throw new Error(`Unknown variable or constant "${token.value}".`);
+        }
+
+        const result = expression();
+        if (position !== tokens.length) throw new Error(`Unexpected "${tokens[position].value}".`);
+        if (!Number.isFinite(result)) throw new Error('The result is not a finite number.');
+        return result;
+      }
+
+      function factorial(value) {
+        if (!Number.isInteger(value) || value < 0 || value > 170) throw new Error('Factorial requires an integer from 0 to 170.');
+        let result = 1;
+        for (let i = 2; i <= value; i++) result *= i;
+        return result;
+      }
+
+      function combination(n, r, permutation = false) {
+        if (!Number.isInteger(n) || !Number.isInteger(r) || n < 0 || r < 0 || r > n) throw new Error('nCr/nPr require integers with 0 ≤ r ≤ n.');
+        let result = 1;
+        const count = permutation ? r : Math.min(r, n - r);
+        for (let i = 0; i < count; i++) result = permutation ? result * (n - i) : result * (n - i) / (i + 1);
+        return result;
+      }
+
+      function callFunction(name, args) {
+        const unaryFunctions = {
+          sin: Math.sin, cos: Math.cos, tan: Math.tan,
+          asin: Math.asin, acos: Math.acos, atan: Math.atan,
+          sinh: Math.sinh, cosh: Math.cosh, tanh: Math.tanh,
+          asinh: Math.asinh, acosh: Math.acosh, atanh: Math.atanh,
+          sqrt: Math.sqrt, ln: Math.log, log: Math.log10,
+          log10: Math.log10, exp: Math.exp, abs: Math.abs,
+          factorial
+        };
+        if (Object.prototype.hasOwnProperty.call(unaryFunctions, name)) {
+          if (args.length !== 1) throw new Error(`${name} expects one argument.`);
+          return unaryFunctions[name](args[0]);
+        }
+        if (name === 'C' || name === 'P') {
+          if (args.length !== 2) throw new Error(`${name} expects n and r.`);
+          return combination(args[0], args[1], name === 'P');
+        }
+        if (name === 'log_b') {
+          if (args.length !== 2 || args[0] <= 0 || args[0] === 1 || args[1] <= 0) throw new Error('Use log_b(base, value), with a positive base other than 1 and a positive value.');
+          return Math.log(args[1]) / Math.log(args[0]);
+        }
+        throw new Error(`Unknown function "${name}".`);
+      }
+
+      function recordHistory(expression, result, type = 'calculation') {
+        state.history.unshift({ expression, result: String(result), type, timestamp: new Date().toISOString() });
+        state.history = state.history.slice(0, 50);
+        let saved = true;
+        try {
+          localStorage.setItem('mathExplorerHistory', JSON.stringify(state.history));
+        } catch (error) {
+          console.warn('Could not save calculator history to local storage.', error);
+          saved = false;
+        }
+        renderHistory();
+        return saved;
+      }
+
+      function renderHistory() {
+        const container = $('history');
+        container.replaceChildren();
+        if (!state.history.length) {
+          const note = document.createElement('p');
+          note.className = 'empty-note';
+          note.textContent = 'Your calculations will appear here.';
+          container.append(note);
+          return;
+        }
+        state.history.forEach((item, index) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'history-entry';
+          button.title = 'Restore this result';
+          const expression = document.createElement('span');
+          expression.textContent = item.expression;
+          const result = document.createElement('strong');
+          result.textContent = item.result;
+          button.append(expression, result);
+          button.addEventListener('click', () => {
+            state.expression = String(state.history[index].result);
+            state.waiting = true;
+            updateDisplay();
+          });
+          container.append(button);
+        });
+      }
+
+      function calculate() {
+        try {
+          const original = state.expression.trim();
+          const result = evaluate(original);
+          state.expression = String(Number(result.toPrecision(12)));
+          state.waiting = true;
+          $('steps').textContent = `${original}\n= ${state.expression}`;
+          const historySaved = recordHistory(original, state.expression);
+          updateDisplay();
+          setStatus(historySaved ? 'Calculated' : 'Calculated; history could not be saved in this browser.', !historySaved);
+          if (state.graphVisible) {
+            state.graphExpression = original;
+            drawGraph();
+          }
+        } catch (error) {
+          setStatus(error.message, true);
+        }
+      }
+
+      function requireNerdamer() {
+        if (typeof window.nerdamer !== 'function') {
+          throw new Error('Symbolic tools are unavailable. Check your internet connection and reload to load Nerdamer.');
+        }
+        return window.nerdamer;
+      }
+
+      function symbolicAction(action) {
+        try {
+          const nerdamer = requireNerdamer();
+          const original = state.expression.trim();
+          if (!original) throw new Error('Enter an expression first.');
+          let result;
+          if (action === 'differentiate') {
+            result = nerdamer.diff(original, 'x').toString();
+            state.graphExpression = original;
+            state.derivative = true;
+            state.integral = false;
+          } else if (action === 'integrate') {
+            const numeric = integrateNumerically(original, 0, 1);
+            result = numeric.toFixed(6);
+            state.graphExpression = original;
+            state.integral = true;
+            state.derivative = false;
+            $('steps').textContent = `∫₀¹ ${original} dx ≈ ${result} (Simpson's rule)`;
+          } else if (action === 'simplify' || action === 'expand') {
+            result = nerdamer(`${action}(${original})`).toString();
+          } else if (action === 'solve') {
+            const equation = original.includes('=') ? original.split('=') : [original, '0'];
+            if (equation.length !== 2) throw new Error('Enter one equation, for example x^2-4=0.');
+            const solution = nerdamer.solveEquations(`${equation[0]}-(${equation[1]})`, 'x');
+            result = solution.toString() || 'No solution found';
+          }
+          if (action !== 'integrate') $('steps').textContent = `${action}(${original})\n= ${result}`;
+          state.expression = String(result);
+          state.waiting = true;
+          updateDisplay();
+          const historySaved = recordHistory(original, result, action);
+          setStatus(historySaved ? `${action[0].toUpperCase()}${action.slice(1)} complete` : `${action} complete; history could not be saved.`, !historySaved);
+          document.querySelector('[data-action="derivative"]').setAttribute('aria-pressed', String(state.derivative));
+          document.querySelector('[data-action="integral"]').setAttribute('aria-pressed', String(state.integral));
+          drawGraph();
+        } catch (error) {
+          setStatus(error.message, true);
+        }
+      }
+
+      function integrateNumerically(expression, a, b, intervals = 200) {
+        const step = (b - a) / intervals;
+        let sum = evaluate(expression, { x: a }) + evaluate(expression, { x: b });
+        for (let i = 1; i < intervals; i++) sum += (i % 2 ? 4 : 2) * evaluate(expression, { x: a + i * step });
+        return sum * step / 3;
+      }
+
+      function findRoot() {
+        const expression = state.expression.trim();
+        let x = 1;
+        for (let i = 0; i < 60; i++) {
+          const y = evaluate(expression, { x });
+          if (Math.abs(y) < 1e-12) {
+            state.expression = String(Number(x.toPrecision(10)));
+            state.waiting = true;
+            updateDisplay();
+            $('steps').textContent = `Numerical root of ${expression}\nx ≈ ${state.expression}`;
+            const historySaved = recordHistory(expression, state.expression, 'root');
+            setStatus(historySaved ? 'Root found' : 'Root found; history could not be saved.', !historySaved);
+            return;
+          }
+          const delta = 1e-5 * Math.max(1, Math.abs(x));
+          const slope = (evaluate(expression, { x: x + delta }) - evaluate(expression, { x: x - delta })) / (2 * delta);
+          if (!Number.isFinite(slope) || Math.abs(slope) < 1e-12) throw new Error('Could not find a root from the initial guess x = 1.');
+          x -= y / slope;
+          if (!Number.isFinite(x) || Math.abs(x) > 1e8) throw new Error('The numerical method diverged; try a different expression.');
+        }
+        throw new Error('No root found from the initial guess x = 1.');
+      }
+
+      function setMemory(action) {
+        if (action === 'memory-store') state.memory = evaluate(state.expression);
+        if (action === 'memory-clear') state.memory = 0;
+        if (action === 'memory-recall') append(String(state.memory));
+        $('memory-display').textContent = Number(state.memory.toPrecision(8)).toString();
+      }
+
+      function drawConstants() {
+        const container = $('constants');
+        Object.entries(constants).forEach(([symbol, value]) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.textContent = symbol;
+          button.title = `${symbol} = ${value}`;
+          button.addEventListener('click', () => append(symbol));
+          container.append(button);
+        });
+      }
+
+      function resizeCanvas() {
+        const rect = canvas.getBoundingClientRect();
+        const ratio = window.devicePixelRatio || 1;
+        canvas.width = Math.max(1, Math.round(rect.width * ratio));
+        canvas.height = Math.max(1, Math.round(rect.height * ratio));
+        context.setTransform(ratio, 0, 0, ratio, 0, 0);
+        drawGraph();
+      }
+
+      function toPixelX(x, width) { return (x - state.xMin) / (state.xMax - state.xMin) * width; }
+      function toPixelY(y, height) { return height - (y - state.yMin) / (state.yMax - state.yMin) * height; }
+
+      function drawGraph() {
+        const rect = canvas.getBoundingClientRect();
+        const width = rect.width;
+        const height = rect.height;
+        if (!width || !height) return;
+        context.clearRect(0, 0, width, height);
+        context.fillStyle = '#f7faff';
+        context.fillRect(0, 0, width, height);
+
+        const spacing = Math.max(1, Math.pow(10, Math.floor(Math.log10((state.xMax - state.xMin) / 10))));
+        context.strokeStyle = '#e3eaf2';
+        context.lineWidth = 1;
+        context.beginPath();
+        for (let x = Math.ceil(state.xMin / spacing) * spacing; x <= state.xMax; x += spacing) {
+          const px = toPixelX(x, width);
+          context.moveTo(px, 0);
+          context.lineTo(px, height);
+        }
+        for (let y = Math.ceil(state.yMin / spacing) * spacing; y <= state.yMax; y += spacing) {
+          const py = toPixelY(y, height);
+          context.moveTo(0, py);
+          context.lineTo(width, py);
+        }
+        context.stroke();
+        context.strokeStyle = '#71849a';
+        context.lineWidth = 1.3;
+        context.beginPath();
+        if (state.yMin <= 0 && state.yMax >= 0) {
+          const py = toPixelY(0, height);
+          context.moveTo(0, py);
+          context.lineTo(width, py);
+        }
+        if (state.xMin <= 0 && state.xMax >= 0) {
+          const px = toPixelX(0, width);
+          context.moveTo(px, 0);
+          context.lineTo(px, height);
+        }
+        context.stroke();
+
+        if (!state.graphVisible || !state.graphExpression) return;
+        try {
+          const points = Math.max(180, Math.floor(width));
+          if (state.integral) {
+            context.fillStyle = 'rgba(35, 135, 91, .14)';
+            context.beginPath();
+            context.moveTo(toPixelX(0, width), toPixelY(0, height));
+            for (let i = 0; i <= 100; i++) {
+              const x = i / 100;
+              const y = evaluate(state.graphExpression, { x });
+              context.lineTo(toPixelX(x, width), toPixelY(y, height));
+            }
+            context.lineTo(toPixelX(1, width), toPixelY(0, height));
+            context.closePath();
+            context.fill();
+          }
+          plot((x) => evaluate(state.graphExpression, { x }), '#1769aa', points, width, height);
+          if (state.derivative) {
+            plot((x) => {
+              const delta = 1e-5 * Math.max(1, Math.abs(x));
+              return (evaluate(state.graphExpression, { x: x + delta }) - evaluate(state.graphExpression, { x: x - delta })) / (2 * delta);
+            }, '#bd4b46', points, width, height, [6, 4]);
+          }
+          if (state.trace && state.traceX !== null) {
+            const x = state.traceX;
+            const y = evaluate(state.graphExpression, { x });
+            context.setLineDash([]);
+            context.fillStyle = '#bd4b46';
+            context.beginPath();
+            context.arc(toPixelX(x, width), toPixelY(y, height), 5, 0, Math.PI * 2);
+            context.fill();
+            context.fillStyle = '#172b43';
+            context.font = '12px Segoe UI, sans-serif';
+            context.fillText(`(${x.toFixed(3)}, ${y.toFixed(3)})`, toPixelX(x, width) + 8, toPixelY(y, height) - 8);
+          }
+        } catch (error) {
+          setStatus(`Graph error: ${error.message}`, true);
+        }
+      }
+
+      function plot(fn, color, points, width, height, dash = []) {
+        context.strokeStyle = color;
+        context.lineWidth = 2;
+        context.setLineDash(dash);
+        context.beginPath();
+        let penDown = false;
+        for (let i = 0; i <= points; i++) {
+          const x = state.xMin + (state.xMax - state.xMin) * i / points;
+          let y;
+          try { y = fn(x); } catch { penDown = false; continue; }
+          if (!Number.isFinite(y) || y < state.yMin - (state.yMax - state.yMin) || y > state.yMax + (state.yMax - state.yMin)) {
+            penDown = false;
+            continue;
+          }
+          const px = toPixelX(x, width);
+          const py = toPixelY(y, height);
+          if (!penDown) context.moveTo(px, py);
+          else context.lineTo(px, py);
+          penDown = true;
+        }
+        context.stroke();
+        context.setLineDash([]);
+      }
+
+      function zoom(factor) {
+        const xCenter = (state.xMin + state.xMax) / 2;
+        const yCenter = (state.yMin + state.yMax) / 2;
+        const xRange = (state.xMax - state.xMin) * factor / 2;
+        const yRange = (state.yMax - state.yMin) * factor / 2;
+        state.xMin = xCenter - xRange;
+        state.xMax = xCenter + xRange;
+        state.yMin = yCenter - yRange;
+        state.yMax = yCenter + yRange;
+        drawGraph();
+      }
+
+      function toggleGraph() {
+        state.graphVisible = true;
+        state.graphExpression = state.expression;
+        state.derivative = false;
+        state.integral = false;
+        drawGraph();
+        setStatus(`Graphing y = ${state.graphExpression}`);
+      }
+
+      function handleAction(action) {
+        try {
+          if (action === 'clear') clear();
+          else if (action === 'backspace') backspace();
+          else if (action === 'calculate') calculate();
+          else if (action === 'graph') toggleGraph();
+          else if (action === 'differentiate' || action === 'integrate' || action === 'solve' || action === 'simplify' || action === 'expand') symbolicAction(action);
+          else if (action === 'numerical') findRoot();
+          else if (action.startsWith('memory-')) setMemory(action);
+          else if (action === 'history-clear') {
+            state.history = [];
+            try {
+              localStorage.removeItem('mathExplorerHistory');
+            } catch (error) {
+              console.warn('Could not clear calculator history from local storage.', error);
+              setStatus('History could not be cleared in this browser.', true);
+            }
+            renderHistory();
+          } else if (action === 'graph-reset') {
+            state.xMin = -10; state.xMax = 10; state.yMin = -10; state.yMax = 10; drawGraph();
+          } else if (action === 'zoom-in') zoom(.8);
+          else if (action === 'zoom-out') zoom(1.25);
+          else if (action === 'trace') {
+            state.trace = !state.trace;
+            document.querySelector('[data-action="trace"]').setAttribute('aria-pressed', String(state.trace));
+            drawGraph();
+          } else if (action === 'derivative') {
+            state.derivative = !state.derivative;
+            state.integral = false;
+            document.querySelector('[data-action="derivative"]').setAttribute('aria-pressed', String(state.derivative));
+            document.querySelector('[data-action="integral"]').setAttribute('aria-pressed', 'false');
+            drawGraph();
+          } else if (action === 'integral') {
+            state.integral = !state.integral;
+            state.derivative = false;
+            document.querySelector('[data-action="integral"]').setAttribute('aria-pressed', String(state.integral));
+            document.querySelector('[data-action="derivative"]').setAttribute('aria-pressed', 'false');
+            drawGraph();
+          }
+        } catch (error) {
+          setStatus(error.message, true);
+        }
+      }
+
+      document.querySelectorAll('[data-insert]').forEach((button) => {
+        button.addEventListener('click', () => append(button.dataset.insert));
+      });
+      document.querySelectorAll('[data-action]').forEach((button) => {
+        button.addEventListener('click', () => handleAction(button.dataset.action));
+      });
+      $('mode-toggle').addEventListener('click', () => {
+        state.symbolic = !state.symbolic;
+        $('mode-toggle').textContent = state.symbolic ? 'Symbolic' : 'Standard';
+        $('mode-toggle').setAttribute('aria-pressed', String(state.symbolic));
+        state.expression = state.symbolic ? '' : '0';
+        state.waiting = false;
+        updateDisplay();
+        setStatus(state.symbolic ? 'Symbolic mode: enter an expression using x.' : 'Standard mode');
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.target instanceof HTMLInputElement) return;
+        if (/^[0-9.]$/.test(event.key)) append(event.key);
+        else if (/^[+\-*/%^(),]$/.test(event.key)) append(event.key);
+        else if (event.key === 'Enter' || event.key === '=') { event.preventDefault(); calculate(); }
+        else if (event.key === 'Backspace') backspace();
+        else if (event.key === 'Escape') clear();
+      });
+      canvas.addEventListener('wheel', (event) => {
+        event.preventDefault();
+        zoom(event.deltaY < 0 ? .9 : 1.1);
+      }, { passive: false });
+      canvas.addEventListener('pointerdown', (event) => {
+        if (state.trace) return;
+        state.dragging = true;
+        state.dragPoint = { x: event.clientX, y: event.clientY };
+        canvas.setPointerCapture(event.pointerId);
+      });
+      canvas.addEventListener('pointermove', (event) => {
+        const rect = canvas.getBoundingClientRect();
+        if (state.trace && state.graphVisible) {
+          state.traceX = state.xMin + (event.clientX - rect.left) / rect.width * (state.xMax - state.xMin);
+          drawGraph();
+        }
+        if (!state.dragging || !state.dragPoint) return;
+        const dx = event.clientX - state.dragPoint.x;
+        const dy = event.clientY - state.dragPoint.y;
+        const xShift = dx / rect.width * (state.xMax - state.xMin);
+        const yShift = dy / rect.height * (state.yMax - state.yMin);
+        state.xMin -= xShift; state.xMax -= xShift;
+        state.yMin += yShift; state.yMax += yShift;
+        state.dragPoint = { x: event.clientX, y: event.clientY };
+        drawGraph();
+      });
+      canvas.addEventListener('pointerup', () => { state.dragging = false; state.dragPoint = null; });
+      canvas.addEventListener('pointercancel', () => { state.dragging = false; state.dragPoint = null; });
+      window.addEventListener('resize', resizeCanvas);
+
+      drawConstants();
+      renderHistory();
+      updateDisplay();
+      resizeCanvas();
+    })();
+  </script>
+</body>
+</html>
